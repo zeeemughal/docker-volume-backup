@@ -10,12 +10,14 @@ services:
       - DOCKER_CONTAINER_STOP=magical_ganguly
       - RESTIC_REPOSITORY=rclone:gdrive:/backup
       # Set the backup cron schedule
-      - RESTIC_BACKUP_CRON=* 22 * * *
+      - BACKUP_CRON=* * * * *
       # Set the forget cron schedule
-      # - PRUNE_CRON=* * * * *
-      # - RESTIC_FORGET_ARGS=--prune --keep-last 2
+      - PRUNE_CRON=* * * * *
+      - RESTIC_FORGET_ARGS=--prune --keep-last 2
       # Set Run on startup to true/false
       - RUN_ON_STARTUP=true
+      - CHECK_CRON=51 20 * * *
+      - RESTIC_CHECK_ARGS=--read-data
       - DOCKER_STOP_CONTAINERS=httpd-server
       - RESTIC_PASSWORD=your_password
     volumes:

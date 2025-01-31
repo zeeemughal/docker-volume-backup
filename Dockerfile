@@ -2,7 +2,7 @@
 FROM alpine:latest
 
 # Create data directory
-RUN apk add --no-cache docker-cli rclone restic bash
+RUN apk add --no-cache docker-cli rclone restic bash tzdata
 
 # Copy backup script
 COPY backup.sh /backup.sh
