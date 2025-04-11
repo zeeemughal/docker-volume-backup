@@ -17,7 +17,6 @@ This Docker container automates MySQL database backups using Restic, with suppor
 Required:
 - `RESTIC_REPOSITORY`: The repository location where backups will be stored (e.g., "rclone:gdrive:/backup")
 - `RESTIC_PASSWORD`: Password for the Restic repository
-- `DOCKER_STOP_CONTAINERS`: Container to stop during backup process (e.g., "magical_ganguly")
 
 Optional:
 - `BACKUP_CRON`: Cron expression for scheduling backups (e.g., "* * * * *")
