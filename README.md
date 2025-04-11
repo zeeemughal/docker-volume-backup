@@ -30,15 +30,6 @@ Optional:
 - `RESTIC_CHECK_ARGS`: Arguments for the `restic check` command (e.g., "--read-data")
 - `TZ`: Timezone for the container (e.g., "Asia/Karachi")
 
-### MySQL Service
-Required:
-- `MYSQL_ROOT_PASSWORD`: Root password for MySQL
-- `MYSQL_DATABASE`: Name of the database to create
-- `MYSQL_USER`: Username for the database
-- `MYSQL_PASSWORD`: Password for the database user
-
-## Usage
-
 ### Docker Compose
 
 ```yaml
@@ -91,8 +82,6 @@ To restore from backup, uncomment the following lines in your docker-compose.yml
 ```yaml
 services:
   backup:
-    depends_on:
-      - mysql
     image: zeeemughal/docker-volume-backup
     environment:
       - TZ=Asia/Karachi
@@ -115,7 +104,11 @@ services:
       - "/bin/sh"
       - "-c"
       - "restic restore latest --target /"
+    restart: "no"
 
+volumes:
+  mysql_data:
+    external: true
 ```
 
 Note: When using restore functionality, set `RUN_ON_STARTUP` to false.
