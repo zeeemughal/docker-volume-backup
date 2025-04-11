@@ -1,6 +1,6 @@
-# Docker Restic Backup Automation with MySQL
+# Docker Restic Backup Automation
 
-This Docker container automates MySQL database backups using Restic, with support for scheduled backups and Docker container management during the backup process.
+This Docker container automates backups using Restic, with support for scheduled backups and Docker container management during the backup process.
 
 ## Features
 
