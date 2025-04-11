@@ -9,20 +9,23 @@ This Docker container automates backups using Restic, with support for scheduled
 - Docker container stop/start management during backups
 - Automatic Restic repository initialization
 - Configurable retention policy
+- Support for backup restoration
+- Integration with HTTPD server
 
 ## Environment Variables
 
 Required:
 - `RESTIC_REPOSITORY`: The repository location where backups will be stored (e.g., "rclone:gdrive:/backup")
 - `RESTIC_PASSWORD`: Password for the Restic repository
+- `DOCKER_CONTAINER_STOP`: Container to stop during backup process
 
 Optional:
-- `BACKUP_CRON`: Cron expression for scheduling backups (e.g., "0 2 * * *" for daily at 2 AM)
+- `BACKUP_CRON`: Cron expression for scheduling backups (e.g., "* * * * *")
 - `PRUNE_CRON`: Cron expression for scheduling pruning operations
-- `DOCKER_STOP_CONTAINERS`: Comma-separated list of container names to stop during backup
-- `RESTIC_FORGET_ARGS`: Arguments for the `restic forget` command to manage retention (e.g., "--prune --keep-last 2")
+- `DOCKER_STOP_CONTAINERS`: Container names to stop during backup (e.g., "httpd-server")
+- `RESTIC_FORGET_ARGS`: Arguments for the `restic forget` command (e.g., "--prune --keep-last 2")
 - `RUN_ON_STARTUP`: Set to "true" to run backup immediately on container start
-- `CHECK_CRON`: Cron expression for scheduling repository health checks
+- `CHECK_CRON`: Cron expression for scheduling repository health checks (e.g., "51 20 * * *")
 - `RESTIC_CHECK_ARGS`: Arguments for the `restic check` command (e.g., "--read-data")
 - `TZ`: Timezone for the container (e.g., "Asia/Karachi")
 
@@ -32,45 +35,48 @@ Optional:
 
 ```yaml
 version: '3.8'
+
 services:
   backup:
-    image: sync:latest
+    depends_on:
+      - httpd
+    image: zeeemughal/docker-volume-backup
     environment:
-      - TZ=Asia/Karachi  # Set your timezone
-      - RESTIC_REPOSITORY=rclone:gdrive:/backup  # RClone-specific repository path
-      - RESTIC_PASSWORD=your_password
-      - BACKUP_CRON=0 2 * * *  # Run at 2 AM daily
-      - PRUNE_CRON=0 3 * * *  # Run pruning at 3 AM daily
+      - TZ=Asia/Karachi
+      - DOCKER_CONTAINER_STOP=magical_ganguly
+      - RESTIC_REPOSITORY=rclone:gdrive:/backup
+      - BACKUP_CRON=* * * * *
+      - PRUNE_CRON=* * * * *
       - RESTIC_FORGET_ARGS=--prune --keep-last 2
-      - RUN_ON_STARTUP=true  # Run backup when container starts
-      - CHECK_CRON=0 4 * * *  # Run health check at 4 AM daily
+      - RUN_ON_STARTUP=true
+      - CHECK_CRON=51 20 * * *
       - RESTIC_CHECK_ARGS=--read-data
-      - DOCKER_STOP_CONTAINERS=container1,container2
+      - DOCKER_STOP_CONTAINERS=httpd-server
+      - RESTIC_PASSWORD=your_password
     volumes:
-      - ./backup:/data/backup  # Mount backup source
-      - ~/.config/rclone:/root/.config/rclone  # Required for RClone configuration
-      - /var/run/docker.sock:/var/run/docker.sock  # Required for Docker control
+      - volume_name:/data/backup
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.config/rclone:/root/.config/rclone
+
+  httpd:
+    image: httpd:latest
+    container_name: httpd-server
+    ports:
+      - "80:80"
 ```
 
-### Direct Docker Run
+### Backup Restoration
 
-```bash
-docker run -d \
-  -e TZ="Asia/Karachi" \
-  -e RESTIC_REPOSITORY="rclone:gdrive:/backup" \
-  -e RESTIC_PASSWORD="your-password" \
-  -e BACKUP_CRON="0 2 * * *" \
-  -e PRUNE_CRON="0 3 * * *" \
-  -e RESTIC_FORGET_ARGS="--prune --keep-last 2" \
-  -e RUN_ON_STARTUP="true" \
-  -e CHECK_CRON="0 4 * * *" \
-  -e RESTIC_CHECK_ARGS="--read-data" \
-  -e DOCKER_STOP_CONTAINERS="container1,container2" \
-  -v ./backup:/data/backup \
-  -v ~/.config/rclone:/root/.config/rclone \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  sync:latest
+To restore from backup, uncomment the following lines in your docker-compose.yml:
+
+```yaml
+entrypoint:
+  - "/bin/sh"
+  - "-c"
+  - "restic restore latest --target /"
 ```
+
+Note: When using restore functionality, set `RUN_ON_STARTUP` to false.
 
 ## Behavior
 
@@ -84,7 +90,7 @@ docker run -d \
    - Repository health checks run according to `CHECK_CRON` schedule
 
 3. During backup:
-   - Stops specified containers if `DOCKER_STOP_CONTAINERS` is set
+   - Stops specified containers (`DOCKER_STOP_CONTAINERS` and `DOCKER_CONTAINER_STOP`)
    - Performs the backup
    - Restarts previously stopped containers
 
@@ -94,9 +100,10 @@ docker run -d \
 
 ## Notes
 
-- The Docker socket mount is required only if using `DOCKER_STOP_CONTAINERS`
+- The Docker socket mount is required for container management
 - Ensure proper read permissions for backup source paths
 - Configure RClone before using with cloud storage providers
 - The RClone configuration file must be mounted at `/root/.config/rclone`
 - Consider using environment files or secrets for sensitive variables
 - All times are interpreted in the container's timezone (set via `TZ` variable)
+- The HTTPD server is included as a dependent service running on port 80
