@@ -1,28 +1,26 @@
-version: '3.8'
-
 services:
   backup:
     depends_on:
-      - httpd
+      - mysql
     image: zeeemughal/docker-volume-backup
     environment:
       - TZ=Asia/Karachi
       - DOCKER_CONTAINER_STOP=magical_ganguly
       - RESTIC_REPOSITORY=rclone:gdrive:/backup
       # Set the backup cron schedule
-      - BACKUP_CRON=* * * * *
+      - BACKUP_CRON=0 5 * * *
       # Set the forget cron schedule
-      - PRUNE_CRON=* * * * *
+      - PRUNE_CRON=0 5 * * *
       - RESTIC_FORGET_ARGS=--prune --keep-last 2
       # Set Run on startup to true/false
       - RUN_ON_STARTUP=true
       - CHECK_CRON=51 20 * * *
       - RESTIC_CHECK_ARGS=--read-data
-      - DOCKER_STOP_CONTAINERS=httpd-server
+      - DOCKER_STOP_CONTAINERS=mysql-container
       - RESTIC_PASSWORD=your_password
     volumes:
       # This is the container volume to backup 
-      - volume_name:/data/backup
+      - mysql_data:/data/backup
       # Mount docker socket to allow container management
       - /var/run/docker.sock:/var/run/docker.sock
       # Mount the rclone config directory to the container
@@ -35,8 +33,21 @@ services:
     #   - "-c"
     #   - "restic restore latest --target /"
 
-  httpd:
-    image: httpd:latest
-    container_name: httpd-server
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-container
+    restart: unless-stopped
     ports:
-      - "80:80"
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: mydatabase
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - mysql_network
+
+volumes:
+  mysql_data:
