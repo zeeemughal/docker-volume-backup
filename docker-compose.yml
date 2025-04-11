@@ -5,7 +5,6 @@ services:
     image: zeeemughal/docker-volume-backup
     environment:
       - TZ=Asia/Karachi
-      - DOCKER_CONTAINER_STOP=magical_ganguly
       - RESTIC_REPOSITORY=rclone:gdrive:/backup
       # Set the backup cron schedule
       - BACKUP_CRON=0 5 * * *
